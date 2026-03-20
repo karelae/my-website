@@ -1,0 +1,2308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D&D Map Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            color: #eee;
+        }
+
+        header {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 12px 20px;
+            border-bottom: 2px solid #d4af37;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            font-size: 28px;
+            margin-bottom: 15px;
+            color: #d4af37;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+        }
+
+        .controls-section {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .file-input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="file"] {
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #d4af37;
+            border-radius: 4px;
+            color: #eee;
+            cursor: pointer;
+        }
+
+        input[type="number"] {
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #d4af37;
+            border-radius: 4px;
+            color: #eee;
+            cursor: pointer;
+            font-size: 14px;
+            width: 150px;
+        }
+
+        input[type="number"]::placeholder {
+            color: #999;
+        }
+
+        input[type="file"]::file-selector-button {
+            background: #d4af37;
+            color: #1a1a2e;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        input[type="file"]::file-selector-button:hover {
+            background: #e8c547;
+        }
+
+        .zoom-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        button {
+            background: #d4af37;
+            color: #1a1a2e;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            transition: background 0.3s ease;
+        }
+
+        button:hover {
+            background: #e8c547;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        .zoom-display {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #d4af37;
+            padding: 8px 12px;
+            border-radius: 4px;
+            min-width: 80px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .map-info-display {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #d4af37;
+            padding: 8px 12px;
+            border-radius: 4px;
+            min-width: 120px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 12px;
+            color: #FFB74D;
+        }
+
+        .tool-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            flex-shrink: 0;
+            max-height: 100%;
+            overflow-y: auto;
+        }
+
+        .layer-tabs {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            padding: 4px 4px 0;
+            background: rgba(0,0,0,0.7);
+            border-radius: 4px 4px 0 0;
+            border: 1px solid #d4af37;
+            border-bottom: none;
+        }
+
+        .layer-tabs button {
+            padding: 4px 4px;
+            font-size: 10px;
+            font-weight: bold;
+            border: 1px solid #555;
+            border-radius: 3px;
+            cursor: pointer;
+            text-align: center;
+            white-space: nowrap;
+            background: rgba(255,255,255,0.08);
+            color: #aaa;
+            transition: background 0.2s;
+        }
+
+        .layer-tabs button:hover { background: rgba(255,255,255,0.15); }
+        .layer-tabs button.active-layer { color: #fff; border-width: 2px; }
+        .layer-tabs button[data-layer="blue"].active-layer { background: rgba(66,165,245,0.4); border-color: #42A5F5; }
+        .layer-tabs button[data-layer="orange"].active-layer { background: rgba(255,152,0,0.4); border-color: #FF9800; }
+        .layer-tabs button[data-layer="green"].active-layer { background: rgba(76,175,80,0.4); border-color: #4CAF50; }
+        .layer-tabs button[data-layer="red"].active-layer { background: rgba(244,67,54,0.4); border-color: #F44336; }
+        .layer-tabs button[data-layer="purple"].active-layer { background: rgba(171,71,188,0.4); border-color: #AB47BC; }
+
+        .tool-bar {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            align-items: stretch;
+            background: rgba(0,0,0,0.6);
+            padding: 10px 8px;
+            border-radius: 0 0 4px 4px;
+            border: 1px solid #d4af37;
+            border-top: none;
+            justify-content: flex-start;
+            width: 90px;
+        }
+
+        .tool-bar button {
+            padding: 6px 4px;
+            font-size: 11px;
+            background: rgba(255,255,255,0.1);
+            color: #eee;
+            border: 1px solid #555;
+            white-space: nowrap;
+            text-align: center;
+        }
+
+        .tool-bar button.active-tool {
+            background: #d4af37;
+            color: #1a1a2e;
+            border-color: #d4af37;
+        }
+
+        .tool-bar button:hover:not(.active-tool) {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .tool-bar .tool-input {
+            width: 100%;
+            padding: 4px 4px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid #d4af37;
+            border-radius: 3px;
+            color: #eee;
+            font-size: 11px;
+        }
+
+        .tool-bar .tool-input::placeholder { color: #999; }
+
+        .tool-bar label {
+            color: #ccc;
+            font-size: 10px;
+            white-space: nowrap;
+            text-align: center;
+            width: 100%;
+        }
+
+        .tool-bar .layer-label {
+            font-weight: bold;
+            font-size: 11px;
+            text-align: center;
+            padding: 2px 0;
+            border-radius: 3px;
+        }
+
+        main {
+            flex: 1;
+            overflow-y: auto;
+            padding: 5px;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        #mapContainer {
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid #d4af37;
+            border-radius: 4px;
+            overflow: hidden;
+            width: 100%;
+            flex: 8;
+            position: relative;
+            cursor: grab;
+            box-shadow: 0 0 30px rgba(212, 175, 55, 0.3);
+            display: flex;
+        }
+
+        #mapContainer.grabbing {
+            cursor: grabbing;
+        }
+
+        #mapContainer.grabbing canvas {
+            cursor: grabbing;
+        }
+
+        #mapCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+            flex: 1;
+        }
+
+        #mapCanvas:active {
+            cursor: grabbing;
+        }
+
+        .placeholder {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: #999;
+            font-size: 18px;
+            padding: 40px;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .placeholder-content {
+            max-width: 400px;
+        }
+
+        .placeholder-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        footer {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px 15px;
+            text-align: center;
+            border-top: 2px solid #d4af37;
+            font-size: 12px;
+            color: #aaa;
+        }
+
+        /* Player Panel Styles */
+        #playerPanel {
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #d4af37;
+            border-radius: 4px;
+            padding: 12px;
+            width: 100%;
+            min-height: auto;
+            overflow-x: auto;
+            overflow-y: hidden;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .panel-title {
+            color: #d4af37;
+            font-size: 16px;
+            font-weight: bold;
+            white-space: nowrap;
+            padding-right: 10px;
+            border-right: 2px solid #d4af37;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+
+        #addPlayerBtn {
+            width: auto;
+            flex-shrink: 0;
+            background: #d4af37;
+            color: #1a1a2e;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s ease;
+            white-space: nowrap;
+        }
+
+        #addPlayerBtn:hover {
+            background: #e8c547;
+        }
+
+        #playerList {
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+            align-items: flex-start;
+        }
+
+        .player-card {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #d4af37;
+            border-radius: 4px;
+            padding: 10px;
+            position: relative;
+            flex-shrink: 0;
+            width: 130px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .player-photo {
+            width: 100px;
+            height: 100px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 3px;
+            margin-bottom: 5px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 10px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .player-photo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .player-name {
+            color: #d4af37;
+            font-weight: bold;
+            margin-bottom: 3px;
+            word-break: break-word;
+            font-size: 12px;
+            text-align: center;
+            max-width: 90px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .player-info {
+            color: #aaa;
+            font-size: 10px;
+            text-align: center;
+            margin-bottom: 5px;
+            width: 100%;
+        }
+
+        .player-speed {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        .player-concentrating {
+            color: #FF9800;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.2s;
+            display: inline-block;
+            padding: 2px 6px;
+            border: 1px solid transparent;
+            border-radius: 3px;
+            margin-top: 5px;
+        }
+
+        .player-concentrating:hover {
+            transform: scale(1.2);
+            border-color: #FF9800;
+        }
+
+        .player-concentrating.inactive {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .player-statusdown {
+            color: #FF1744;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.2s;
+            display: inline-block;
+            padding: 2px 6px;
+            border: 1px solid transparent;
+            border-radius: 3px;
+            margin-top: 5px;
+        }
+
+        .player-statusdown:hover {
+            transform: scale(1.2);
+            border-color: #FF1744;
+        }
+
+        .player-statusdown.inactive {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .player-edit-btn {
+            width: 100%;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 3px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: background 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .player-edit-btn:hover {
+            background: #45a049;
+        }
+
+        .player-conditions {
+            width: 100%;
+            font-size: 9px;
+            color: #ccc;
+            margin-top: 5px;
+            border-top: 1px solid rgba(212, 175, 55, 0.3);
+            padding-top: 5px;
+            max-height: 60px;
+            overflow-y: auto;
+        }
+
+        .condition-tag {
+            display: inline-block;
+            background: rgba(255, 152, 0, 0.2);
+            border: 1px solid #FF9800;
+            border-radius: 3px;
+            padding: 2px 6px;
+            margin: 2px 3px 2px 0;
+            font-size: 9px;
+            color: #FFB74D;
+        }
+
+        /* Enemy Panel Styles (identical to Player Panel) */
+        #enemyPanel {
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #d4af37;
+            border-radius: 4px;
+            padding: 12px;
+            width: 100%;
+            min-height: auto;
+            overflow-x: auto;
+            overflow-y: hidden;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        #addEnemyBtn {
+            width: auto;
+            flex-shrink: 0;
+            background: #d4af37;
+            color: #1a1a2e;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s ease;
+            white-space: nowrap;
+        }
+
+        #addEnemyBtn:hover {
+            background: #e8c547;
+        }
+
+        #enemyList {
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+            align-items: flex-start;
+        }
+
+        .enemy-card {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #d4af37;
+            border-radius: 4px;
+            padding: 10px;
+            position: relative;
+            flex-shrink: 0;
+            width: 130px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .enemy-photo {
+            width: 100px;
+            height: 100px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 3px;
+            margin-bottom: 5px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 10px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .enemy-photo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .enemy-name {
+            color: #d4af37;
+            font-weight: bold;
+            margin-bottom: 3px;
+            word-break: break-word;
+            font-size: 12px;
+            text-align: center;
+            max-width: 90px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .enemy-info {
+            color: #aaa;
+            font-size: 10px;
+            text-align: center;
+            margin-bottom: 5px;
+            width: 100%;
+        }
+
+        .enemy-speed {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        .enemy-concentrating {
+            color: #FF9800;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.2s;
+            display: inline-block;
+            padding: 2px 6px;
+            border: 1px solid transparent;
+            border-radius: 3px;
+            margin-top: 5px;
+        }
+
+        .enemy-concentrating:hover {
+            transform: scale(1.2);
+            border-color: #FF9800;
+        }
+
+        .enemy-concentrating.inactive {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .enemy-statusdown {
+            color: #FF1744;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.2s;
+            display: inline-block;
+            padding: 2px 6px;
+            border: 1px solid transparent;
+            border-radius: 3px;
+            margin-top: 5px;
+        }
+
+        .enemy-statusdown:hover {
+            transform: scale(1.2);
+            border-color: #FF1744;
+        }
+
+        .enemy-statusdown.inactive {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .enemy-remove {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: #c74a36;
+            color: white;
+            border: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s ease;
+        }
+
+        .enemy-remove:hover {
+            background: #e74a3b;
+        }
+
+        .enemy-conditions {
+            width: 100%;
+            font-size: 9px;
+            color: #ccc;
+            margin-top: 5px;
+            border-top: 1px solid rgba(212, 175, 55, 0.3);
+            padding-top: 5px;
+            max-height: 60px;
+            overflow-y: auto;
+        }
+
+        .enemy-edit-btn {
+            width: 100%;
+            background: #FF6B6B;
+            color: white;
+            border: none;
+            padding: 3px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: background 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .enemy-edit-btn:hover {
+            background: #FF5252;
+        }
+
+        .player-remove {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: #c74a36;
+            color: white;
+            border: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s ease;
+        }
+
+        .player-remove:hover {
+            background: #e74a3b;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: rgba(26, 26, 46, 0.95);
+            border: 3px solid #d4af37;
+            border-radius: 8px;
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 0 30px rgba(212, 175, 55, 0.5);
+        }
+
+        .modal-title {
+            color: #d4af37;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .form-group label {
+            color: #d4af37;
+            font-weight: bold;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="file"] {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #d4af37;
+            padding: 10px;
+            border-radius: 4px;
+            color: #eee;
+            font-size: 14px;
+        }
+
+        .form-group input[type="number"] {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #d4af37;
+            padding: 10px;
+            border-radius: 4px;
+            color: #eee;
+            font-size: 14px;
+        }
+
+        .form-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .form-group input[type="text"]::placeholder {
+            color: #999;
+        }
+
+        .form-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .form-buttons button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            transition: background 0.3s ease;
+        }
+
+        .btn-save {
+            background: #d4af37;
+            color: #1a1a2e;
+        }
+
+        .btn-save:hover {
+            background: #e8c547;
+        }
+
+        .btn-cancel {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #d4af37;
+            color: #d4af37;
+        }
+
+        .btn-cancel:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Bottom panels layout */
+        .bottom-panels {
+            display: flex;
+            flex-direction: row;
+            gap: 5px;
+            flex-shrink: 0;
+        }
+
+        .bottom-left {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            min-width: 0;
+        }
+
+        /* Initiative Panel */
+        #initiativePanel {
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #d4af37;
+            border-radius: 4px;
+            padding: 10px;
+            width: 160px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 400px;
+        }
+
+        #initiativePanel .panel-title {
+            border-right: none;
+            margin-right: 0;
+            padding-right: 0;
+            text-align: center;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #d4af37;
+        }
+
+        .initiative-controls {
+            display: flex;
+            gap: 4px;
+        }
+
+        .initiative-controls button {
+            flex: 1;
+            padding: 5px 4px;
+            font-size: 11px;
+            background: rgba(255,255,255,0.1);
+            color: #eee;
+            border: 1px solid #555;
+        }
+
+        .initiative-controls button:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        #initiativeList {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .init-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 8px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid #555;
+            border-radius: 3px;
+            cursor: grab;
+            font-size: 12px;
+            color: #ccc;
+            user-select: none;
+            transition: background 0.15s;
+        }
+
+        .init-item:active { cursor: grabbing; }
+
+        .init-item.active-turn {
+            background: rgba(212, 175, 55, 0.3);
+            border-color: #d4af37;
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .init-item .init-pointer {
+            font-size: 10px;
+            width: 14px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .init-item .init-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .init-item.player-init .init-name { color: #42A5F5; }
+        .init-item.enemy-init .init-name { color: #EF5350; }
+        .init-item.active-turn .init-name { color: #fff; }
+
+        .init-item.drag-over {
+            border-color: #d4af37;
+            background: rgba(212, 175, 55, 0.15);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 20px;
+            }
+
+            .controls-section {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .file-input-group {
+                flex-direction: column;
+            }
+
+            button {
+                padding: 8px 12px;
+                font-size: 12px;
+            }
+
+            .zoom-controls {
+                width: 100%;
+                justify-content: center;
+            }
+
+            #playerPanel {
+                width: 100%;
+                height: auto;
+                max-height: 160px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🗺️ D&D Map app</h1>
+        <div class="controls-section">
+            <div class="file-input-group">
+                <input type="file" id="mapFile" accept="image/*" >
+                <input type="number" id="mapWidth" placeholder="Width (ft)" value="">
+                <input type="number" id="mapHeight" placeholder="Height (ft)" value="">
+            </div>
+            <div class="zoom-controls">
+                <button id="zoomInBtn" title="Zoom In">+ Zoom In</button>
+                <button id="zoomOutBtn" title="Zoom Out">- Zoom Out</button>
+                <button id="resetBtn" title="Reset View">↺ Reset</button>
+                <button id="clearBtn" title="Clear File">✕ Clear</button>
+                <div class="zoom-display" id="zoomLevel">100%</div>
+                <div class="map-info-display" id="mapInfo">-</div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div id="mapContainer">
+            <canvas id="mapCanvas"></canvas>
+            <div class="placeholder" id="placeholder">
+                <div class="placeholder-content">
+                    <div class="placeholder-icon">📁</div>
+                    <p>Upload a map image to get started!</p>
+                    <p style="font-size: 12px; margin-top: 10px; color: #666;">Use zoom controls or scroll wheel to zoom. Drag to pan around the map.</p>
+                </div>
+            </div>
+            <div class="tool-sidebar">
+                <div class="layer-tabs">
+                    <button data-layer="blue" class="active-layer" style="color:#42A5F5">🔵 Blue</button>
+                    <button data-layer="orange" style="color:#FF9800">🟠 Orange</button>
+                    <button data-layer="green" style="color:#4CAF50">🟢 Green</button>
+                    <button data-layer="red" style="color:#F44336">🔴 Red</button>
+                    <button data-layer="purple" style="color:#AB47BC">🟣 Purple</button>
+                </div>
+                <div class="tool-bar">
+                    <button id="toolMove" class="active-tool" title="Move tokens on map">⤡ Move</button>
+                    <button id="toolMeasure" title="Draw line to measure distance">📏 Measure</button>
+                    <button id="toolLine" title="Draw 5ft wide line">▬ Line</button>
+                    <button id="toolCube" title="Draw a rotatable cube">⬜ Cube</button>
+                    <button id="toolCircle" title="Draw a circle area">⭕ Circle</button>
+                    <button id="toolCone" title="Draw a cone area">◢ Cone</button>
+                    <button id="toolClearOverlay" title="Clear this layer's overlays">🗑 Clear</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="bottom-panels">
+            <div class="bottom-left">
+                <div id="playerPanel">
+                    <div class="panel-title">👥 Players</div>
+                    <button id="addPlayerBtn">+ Add Player</button>
+                    <div id="playerList"></div>
+                </div>
+
+                <div id="enemyPanel">
+                    <div class="panel-title">👹 Enemies</div>
+                    <button id="addEnemyBtn">+ Add Enemy</button>
+                    <div id="enemyList"></div>
+                </div>
+            </div>
+
+            <div id="initiativePanel">
+                <div class="panel-title">⚔️ Initiative</div>
+                <div class="initiative-controls">
+                    <button id="initNextBtn" title="Next turn">▶ Next</button>
+                    <button id="initResetBtn" title="Reset to top">↺ Reset</button>
+                </div>
+                <div id="initiativeList"></div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>Use your mouse wheel to zoom in/out, or drag to pan around the map. Scroll wheel or click zoom buttons to adjust view.</p>
+        <p>Hello, I'm Karel, I like coding and dnd so I made this. (Not gonna lie, it was an AI driven project!)</p>
+        <p>If you liked it consider buying me a drink or sharing it with your friends!</p>
+    </footer>
+
+    <!-- Add Player Modal -->
+    <div id="addPlayerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-title">Add Player</div>
+            <form id="playerForm">
+                <div class="form-group">
+                    <label for="playerName">Player Name</label>
+                    <input type="text" id="playerName" name="name" placeholder="Enter player name" required>
+                </div>
+                <div class="form-group">
+                    <label for="playerSpeed">Speed</label>
+                    <input type="number" id="playerSpeed" name="speed" placeholder="Enter speed" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="playerConcentrating" name="concentrating">
+                        <span style="margin-left: 5px;">Concentrating</span>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label for="playerConditions">Conditions (comma-separated)</label>
+                    <input type="text" id="playerConditions" name="conditions" placeholder="e.g., Poisoned, Blinded, Restrained">
+                </div>
+                <div class="form-group">
+                    <label for="playerPhoto">Player Photo (Optional)</label>
+                    <input type="file" id="playerPhoto" name="photo" accept="image/*">
+                </div>
+                <div class="form-buttons">
+                    <button type="submit" class="btn-save" id="formSubmitBtn">Add</button>
+                    <button type="button" class="btn-cancel" id="cancelBtn">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Enemy Modal -->
+    <div id="addEnemyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-title">Add Enemy</div>
+            <form id="enemyForm">
+                <div class="form-group">
+                    <label for="enemyName">Enemy Name</label>
+                    <input type="text" id="enemyName" name="name" placeholder="Enter enemy name" required>
+                </div>
+                <div class="form-group">
+                    <label for="enemySpeed">Speed</label>
+                    <input type="number" id="enemySpeed" name="speed" placeholder="Enter speed" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="enemyConcentrating" name="concentrating">
+                        <span style="margin-left: 5px;">Concentrating</span>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label for="enemyConditions">Conditions (comma-separated)</label>
+                    <input type="text" id="enemyConditions" name="conditions" placeholder="e.g., Poisoned, Blinded, Restrained">
+                </div>
+                <div class="form-group">
+                    <label for="enemyPhoto">Enemy Photo (Optional)</label>
+                    <input type="file" id="enemyPhoto" name="photo" accept="image/*">
+                </div>
+                <div class="form-buttons">
+                    <button type="submit" class="btn-save" id="enemyFormSubmitBtn">Add</button>
+                    <button type="button" class="btn-cancel" id="enemyCancelBtn">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // ==================== MAP & CANVAS SYSTEM ====================
+        const canvas = document.getElementById('mapCanvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('mapContainer');
+        const placeholder = document.getElementById('placeholder');
+        const mapFile = document.getElementById('mapFile');
+        const mapWidthInput = document.getElementById('mapWidth');
+        const mapHeightInput = document.getElementById('mapHeight');
+        const zoomLevelDisplay = document.getElementById('zoomLevel');
+
+        let image = null;
+        let zoom = 1;
+        let panX = 0, panY = 0;
+        let mapWidthFeet = 0, mapHeightFeet = 0;
+        let imageAspectRatio = 1; // actual image width/height
+        let gameAspectRatio = 1;  // user-declared width/height
+
+        const MIN_ZOOM = 0.1, MAX_ZOOM = 10, ZOOM_SPEED = 0.15;
+
+        // Tokens
+        let playerTokens = [];
+        let enemyTokens = [];
+
+        // Tools: 'move', 'measure', 'circle', 'cone'
+        let activeTool = 'move';
+        let mouseState = null; // tracks current drag operation
+
+        // Overlay layers - 5 colored layers
+        const LAYER_COLORS = {
+            blue:   { line: 'rgba(66,165,245,0.9)',  linePrev: 'rgba(66,165,245,0.5)',  fill: 'rgba(66,165,245,0.2)',  stroke: 'rgba(66,165,245,0.8)',  label: '#42A5F5' },
+            orange: { line: 'rgba(255,152,0,0.9)',    linePrev: 'rgba(255,152,0,0.5)',    fill: 'rgba(255,152,0,0.2)',    stroke: 'rgba(255,152,0,0.8)',    label: '#FFB74D' },
+            green:  { line: 'rgba(76,175,80,0.9)',    linePrev: 'rgba(76,175,80,0.5)',    fill: 'rgba(76,175,80,0.2)',    stroke: 'rgba(76,175,80,0.8)',    label: '#66BB6A' },
+            red:    { line: 'rgba(244,67,54,0.9)',    linePrev: 'rgba(244,67,54,0.5)',    fill: 'rgba(244,67,54,0.2)',    stroke: 'rgba(244,67,54,0.8)',    label: '#EF5350' },
+            purple: { line: 'rgba(171,71,188,0.9)',   linePrev: 'rgba(171,71,188,0.5)',   fill: 'rgba(171,71,188,0.2)',   stroke: 'rgba(171,71,188,0.8)',   label: '#BA68C8' }
+        };
+        const overlayLayers = { blue: [], orange: [], green: [], red: [], purple: [] };
+        let activeLayer = 'blue';
+
+        // ---- Coordinate helpers ----
+        // Pixels per foot based on image width and declared map width
+        function pxPerFootX() {
+            return image.width / mapWidthFeet;
+        }
+
+        function pxPerFootY() {
+            return image.height / mapHeightFeet;
+        }
+
+        // Calculate stretch factor for ellipses to match in-game aspect ratio
+        function getStretchFactorY() {
+            // Stretch Y to match the declared game aspect ratio
+            return gameAspectRatio / imageAspectRatio;
+        }
+
+        // Convert client (screen) coordinates to "map space" (image pixel coords)
+        function clientToMap(clientX, clientY) {
+            const rect = canvas.getBoundingClientRect();
+            const sx = canvas.width / rect.width;
+            const sy = canvas.height / rect.height;
+            const cx = (clientX - rect.left) * sx;
+            const cy = (clientY - rect.top) * sy;
+            const mx = (cx - canvas.width / 2) / zoom - panX + image.width / 2;
+            const my = (cy - canvas.height / 2) / zoom - panY + image.height / 2;
+            return { x: mx, y: my };
+        }
+
+        // Convert pixel vector (dx, dy) to feet distance
+        function mapPixelsToFeet(dx, dy) {
+            const feetX = dx / pxPerFootX();
+            // Unstretch the Y component
+            const stretchY = getStretchFactorY();
+            const feetY = (dy / stretchY) / pxPerFootX();
+            return Math.sqrt(feetX * feetX + feetY * feetY);
+        }
+
+        // Feet to map pixels - separate X and Y for deformable rendering
+        function feetToMapPixelsX(ft) {
+            return ft * pxPerFootX();
+        }
+
+        function feetToMapPixelsY(ft) {
+            return ft * pxPerFootY();
+        }
+
+        function mapPosValid(mx, my) {
+            return mx >= 0 && mx <= image.width && my >= 0 && my <= image.height;
+        }
+
+        // ---- Find token at map position (ellipse hit test) ----
+        function findTokenAtMap(mx, my) {
+            const radiusFtX = 2.5;
+            const radiusFtY = 2.5;
+            const rPxX = radiusFtX * pxPerFootX();
+            const stretchY = getStretchFactorY();
+            const rPxY = radiusFtY * pxPerFootX() * stretchY;
+            
+            for (let i = playerTokens.length - 1; i >= 0; i--) {
+                const t = playerTokens[i];
+                const dx = mx - t.mapX, dy = my - t.mapY;
+                const normalizedDist = (dx * dx) / (rPxX * rPxX) + (dy * dy) / (rPxY * rPxY);
+                if (normalizedDist <= 1)
+                    return { type: 'player', index: i, token: t };
+            }
+            for (let i = enemyTokens.length - 1; i >= 0; i--) {
+                const t = enemyTokens[i];
+                const dx = mx - t.mapX, dy = my - t.mapY;
+                const normalizedDist = (dx * dx) / (rPxX * rPxX) + (dy * dy) / (rPxY * rPxY);
+                if (normalizedDist <= 1)
+                    return { type: 'enemy', index: i, token: t };
+            }
+            return null;
+        }
+
+        // ---- Drawing ----
+        function initCanvas() {
+            // Account for toolbar width when calculating canvas size
+            const toolbar = document.querySelector('.tool-bar');
+            const toolbarWidth = toolbar ? toolbar.offsetWidth : 90;
+            const availableWidth = Math.max(container.offsetWidth - toolbarWidth - 10, 100);
+            
+            canvas.width = availableWidth || 800;
+            canvas.height = container.offsetHeight || 600;
+            draw();
+        }
+
+        // ---- Cone drawing helper ----
+        // D&D cone: origin point, extends lengthFt, width at end = lengthFt
+        function drawConeOverlay(ctx, imgOx, imgOy, startX, startY, endX, endY, lengthFt, colors, isPreview) {
+            const dx = endX - startX;
+            const dy = endY - startY;
+            const pixelDist = Math.sqrt(dx * dx + dy * dy);
+            if (pixelDist < 1) return;
+
+            const dist = lengthFt || mapPixelsToFeet(dx, dy);
+            // Direction unit vector
+            const ux = dx / pixelDist;
+            const uy = dy / pixelDist;
+            // Perpendicular unit vector
+            const px = -uy;
+            const py = ux;
+            // Half-width at end = half the cone length in pixels
+            const halfWidthPx = pixelDist / 2;
+
+            // Triangle: origin -> left edge of end -> right edge of end
+            const tipX = imgOx + startX;
+            const tipY = imgOy + startY;
+            const leftX = imgOx + endX + px * halfWidthPx;
+            const leftY = imgOy + endY + py * halfWidthPx;
+            const rightX = imgOx + endX - px * halfWidthPx;
+            const rightY = imgOy + endY - py * halfWidthPx;
+
+            ctx.beginPath();
+            ctx.moveTo(tipX, tipY);
+            ctx.lineTo(leftX, leftY);
+            ctx.lineTo(rightX, rightY);
+            ctx.closePath();
+            ctx.fillStyle = colors.fill;
+            ctx.fill();
+            ctx.strokeStyle = colors.stroke;
+            ctx.lineWidth = 2;
+            ctx.setLineDash(isPreview ? [6, 4] : [6, 4]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Label at center of cone
+            const labelX = tipX + (dx * 0.55);
+            const labelY = tipY + (dy * 0.55);
+            const label = `${Math.round(dist)}ft`;
+            ctx.fillStyle = 'rgba(0,0,0,0.7)';
+            ctx.fillRect(labelX - 25, labelY - 10, 50, 20);
+            ctx.fillStyle = colors.label;
+            ctx.font = 'bold 13px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(label, labelX, labelY);
+        }
+
+        function draw() {
+            ctx.fillStyle = '#14142a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            if (!image) return;
+
+            ctx.save();
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.scale(zoom, zoom);
+            ctx.translate(panX, panY);
+
+            // Origin is now at image top-left when we offset by -w/2, -h/2
+            const ox = -image.width / 2;
+            const oy = -image.height / 2;
+            ctx.drawImage(image, ox, oy);
+
+            // Draw tokens
+            if (mapWidthFeet > 0 && mapHeightFeet > 0) {
+                const rX = 2.5 * pxPerFootX(); // 2.5ft radius X (5ft diameter)
+                const stretchY = getStretchFactorY();
+                const rY = 2.5 * pxPerFootX() * stretchY; // 2.5ft radius Y stretched
+                const fontSize = Math.max(8, Math.min(16, Math.min(rX, rY) * 0.75));
+
+                const drawTk = (tk, defaultFill, defaultStroke, isEnemy) => {
+                    let fill = defaultFill;
+                    let stroke = defaultStroke;
+                    const sourceArray = isEnemy ? enemies : players;
+                    const source = sourceArray.find(s => s.id === tk.id);
+                    const state = source ? (source.statusState || 'up') : 'up';
+                    
+                    if (state === 'down') {
+                        fill = isEnemy ? 'rgba(30,30,30,0.75)' : 'rgba(147,51,234,0.75)';
+                        stroke = isEnemy ? '#000' : '#9333EA';
+                    } else if (state === 'dead') {
+                        fill = isEnemy ? 'rgba(80,80,80,0.75)' : 'rgba(50,50,50,0.75)';
+                        stroke = isEnemy ? '#555' : '#333';
+                    }
+                    
+                    const cx = ox + tk.mapX;
+                    const cy = oy + tk.mapY;
+                    ctx.beginPath();
+                    ctx.ellipse(cx, cy, rX, rY, 0, 0, Math.PI * 2);
+                    ctx.fillStyle = fill;
+                    ctx.fill();
+                    ctx.strokeStyle = stroke;
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    ctx.fillStyle = '#FFF';
+                    ctx.font = `bold ${fontSize}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(tk.name, cx, cy);
+                };
+
+                playerTokens.forEach(t => drawTk(t, 'rgba(50,150,255,0.75)', '#2196F3', false));
+                enemyTokens.forEach(t => drawTk(t, 'rgba(255,60,60,0.75)', '#F44336', true));
+            }
+
+            // Draw overlays for all layers
+            for (const [layerName, layerOverlays] of Object.entries(overlayLayers)) {
+                const colors = LAYER_COLORS[layerName];
+                layerOverlays.forEach(o => {
+                    if (o.type === 'line') {
+                        ctx.beginPath();
+                        ctx.moveTo(ox + o.x1, oy + o.y1);
+                        ctx.lineTo(ox + o.x2, oy + o.y2);
+                        ctx.strokeStyle = colors.line;
+                        ctx.lineWidth = 3;
+                        ctx.setLineDash([8, 6]);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+                        const mx = ox + (o.x1 + o.x2) / 2;
+                        const my = oy + (o.y1 + o.y2) / 2;
+                        const label = `${Math.round(o.dist)}ft`;
+                        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+                        ctx.fillRect(mx - 30, my - 12, 60, 24);
+                        ctx.fillStyle = colors.label;
+                        ctx.font = 'bold 14px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(label, mx, my);
+                    } else if (o.type === 'wall') {
+                        // Draw 5ft wide line, accounting for non-uniform X/Y scale
+                        const dx = o.x2 - o.x1;
+                        const dy = o.y2 - o.y1;
+                        const lenFt = mapPixelsToFeet(dx, dy);
+                        const stretchY = getStretchFactorY();
+                        // Perpendicular offset in map pixels: derived from game-feet perpendicular
+                        const perpX = -2.5 * dy / (stretchY * lenFt);
+                        const perpY =  2.5 * dx * stretchY / lenFt;
+                        ctx.beginPath();
+                        ctx.moveTo(ox + o.x1 + perpX, oy + o.y1 + perpY);
+                        ctx.lineTo(ox + o.x2 + perpX, oy + o.y2 + perpY);
+                        ctx.lineTo(ox + o.x2 - perpX, oy + o.y2 - perpY);
+                        ctx.lineTo(ox + o.x1 - perpX, oy + o.y1 - perpY);
+                        ctx.closePath();
+                        ctx.fillStyle = colors.fill;
+                        ctx.fill();
+                        ctx.strokeStyle = colors.stroke;
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                        // Label at midpoint
+                        const mx = ox + (o.x1 + o.x2) / 2;
+                        const my = oy + (o.y1 + o.y2) / 2;
+                        const label = `${o.lengthFt}ft L / ${o.widthFt}ft W`;
+                        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+                        ctx.fillRect(mx - 50, my - 12, 100, 24);
+                        ctx.fillStyle = colors.label;
+                        ctx.font = 'bold 13px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(label, mx, my);
+                    } else if (o.type === 'circle') {
+                        ctx.beginPath();
+                        const rX = o.radiusFt * pxPerFootX();
+                        const stretchY = getStretchFactorY();
+                        const rY = o.radiusFt * pxPerFootX() * stretchY;
+                        ctx.ellipse(ox + o.cx, oy + o.cy, rX, rY, 0, 0, Math.PI * 2);
+                        ctx.fillStyle = colors.fill;
+                        ctx.fill();
+                        ctx.strokeStyle = colors.stroke;
+                        ctx.lineWidth = 2;
+                        ctx.setLineDash([6, 4]);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+                        const label = `${o.radiusFt}ft`;
+                        ctx.fillStyle = colors.label;
+                        ctx.font = 'bold 13px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(label, ox + o.cx, oy + o.cy);
+                    } else if (o.type === 'cube') {
+                        const ppfx = pxPerFootX(), stretchY = getStretchFactorY(), ppfy = ppfx * stretchY;
+                        // center + dragged corner, work in game-feet for true square
+                        const cgx = o.cx / ppfx, cgy = o.cy / ppfy;
+                        const hx = o.tx / ppfx - cgx, hy = o.ty / ppfy - cgy;
+                        ctx.beginPath();
+                        ctx.moveTo(ox + (cgx + hx) * ppfx, oy + (cgy + hy) * ppfy);
+                        ctx.lineTo(ox + (cgx - hy) * ppfx, oy + (cgy + hx) * ppfy);
+                        ctx.lineTo(ox + (cgx - hx) * ppfx, oy + (cgy - hy) * ppfy);
+                        ctx.lineTo(ox + (cgx + hy) * ppfx, oy + (cgy - hx) * ppfy);
+                        ctx.closePath();
+                        ctx.fillStyle = colors.fill;
+                        ctx.fill();
+                        ctx.strokeStyle = colors.stroke;
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                        const mx = ox + o.cx, my = oy + o.cy;
+                        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+                        ctx.fillRect(mx - 35, my - 12, 70, 24);
+                        ctx.fillStyle = colors.label;
+                        ctx.font = 'bold 13px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(`${o.sideFt}ft cube`, mx, my);
+                    } else if (o.type === 'cone') {
+                        drawConeOverlay(ctx, ox, oy, o.ox, o.oy, o.tx, o.ty, o.lengthFt, colors);
+                    }
+                });
+            }
+
+            // Live preview while dragging measure/circle
+            if (mouseState && mouseState.action === 'measure' && mouseState.curX !== undefined) {
+                const colors = LAYER_COLORS[activeLayer];
+                ctx.beginPath();
+                ctx.moveTo(ox + mouseState.startMapX, oy + mouseState.startMapY);
+                ctx.lineTo(ox + mouseState.curX, oy + mouseState.curY);
+                ctx.strokeStyle = colors.linePrev;
+                ctx.lineWidth = 2;
+                ctx.setLineDash([6, 4]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                const dx = mouseState.curX - mouseState.startMapX;
+                const dy = mouseState.curY - mouseState.startMapY;
+                const dist = mapPixelsToFeet(dx, dy);
+                const lx = ox + (mouseState.startMapX + mouseState.curX) / 2;
+                const ly = oy + (mouseState.startMapY + mouseState.curY) / 2;
+                ctx.fillStyle = 'rgba(0,0,0,0.7)';
+                ctx.fillRect(lx - 30, ly - 12, 60, 24);
+                ctx.fillStyle = colors.label;
+                ctx.font = 'bold 14px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(`${Math.round(dist)}ft`, lx, ly);
+            }
+
+            if (mouseState && mouseState.action === 'line' && mouseState.curX !== undefined) {
+                const colors = LAYER_COLORS[activeLayer];
+                const dx = mouseState.curX - mouseState.startMapX;
+                const dy = mouseState.curY - mouseState.startMapY;
+                const lenFt = mapPixelsToFeet(dx, dy);
+                const stretchY = getStretchFactorY();
+                const perpX = -2.5 * dy / (stretchY * lenFt);
+                const perpY =  2.5 * dx * stretchY / lenFt;
+                ctx.beginPath();
+                ctx.moveTo(ox + mouseState.startMapX + perpX, oy + mouseState.startMapY + perpY);
+                ctx.lineTo(ox + mouseState.curX   + perpX, oy + mouseState.curY   + perpY);
+                ctx.lineTo(ox + mouseState.curX   - perpX, oy + mouseState.curY   - perpY);
+                ctx.lineTo(ox + mouseState.startMapX - perpX, oy + mouseState.startMapY - perpY);
+                ctx.closePath();
+                ctx.fillStyle = colors.fill;
+                ctx.fill();
+                ctx.strokeStyle = colors.linePrev;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                // Label
+                const mx = ox + (mouseState.startMapX + mouseState.curX) / 2;
+                const my = oy + (mouseState.startMapY + mouseState.curY) / 2;
+                ctx.fillStyle = 'rgba(0,0,0,0.7)';
+                ctx.fillRect(mx - 50, my - 12, 100, 24);
+                ctx.fillStyle = colors.label;
+                ctx.font = 'bold 13px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(`${Math.round(lenFt)}ft L / 5ft W`, mx, my);
+            }
+
+            if (mouseState && mouseState.action === 'circle-place' && mouseState.curX !== undefined) {
+                const colors = LAYER_COLORS[activeLayer];
+                const dx = mouseState.curX - mouseState.startMapX;
+                const dy = mouseState.curY - mouseState.startMapY;
+                const radiusFt = mapPixelsToFeet(dx, dy);
+                const rPxX = radiusFt * pxPerFootX();
+                const stretchY = getStretchFactorY();
+                const rPxY = radiusFt * pxPerFootX() * stretchY;
+                ctx.beginPath();
+                ctx.ellipse(ox + mouseState.startMapX, oy + mouseState.startMapY, rPxX, rPxY, 0, 0, Math.PI * 2);
+                ctx.fillStyle = colors.fill;
+                ctx.fill();
+                ctx.strokeStyle = colors.linePrev;
+                ctx.lineWidth = 2;
+                ctx.setLineDash([6, 4]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                // Label
+                const label = `${Math.round(radiusFt)}ft`;
+                ctx.fillStyle = 'rgba(0,0,0,0.7)';
+                ctx.fillRect(ox + mouseState.startMapX - 25, oy + mouseState.startMapY - 10, 50, 20);
+                ctx.fillStyle = colors.label;
+                ctx.font = 'bold 13px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(label, ox + mouseState.startMapX, oy + mouseState.startMapY);
+            }
+
+            if (mouseState && mouseState.action === 'cone' && mouseState.curX !== undefined) {
+                const colors = LAYER_COLORS[activeLayer];
+                drawConeOverlay(ctx, ox, oy, mouseState.startMapX, mouseState.startMapY, mouseState.curX, mouseState.curY, null, { fill: colors.fill, stroke: colors.linePrev, label: colors.label }, true);
+            }
+
+            if (mouseState && mouseState.action === 'cube' && mouseState.curX !== undefined) {
+                const colors = LAYER_COLORS[activeLayer];
+                const ppfx = pxPerFootX(), stretchY = getStretchFactorY(), ppfy = ppfx * stretchY;
+                const cgx = mouseState.startMapX / ppfx, cgy = mouseState.startMapY / ppfy;
+                const hx = mouseState.curX / ppfx - cgx, hy = mouseState.curY / ppfy - cgy;
+                ctx.beginPath();
+                ctx.moveTo(ox + (cgx + hx) * ppfx, oy + (cgy + hy) * ppfy);
+                ctx.lineTo(ox + (cgx - hy) * ppfx, oy + (cgy + hx) * ppfy);
+                ctx.lineTo(ox + (cgx - hx) * ppfx, oy + (cgy - hy) * ppfy);
+                ctx.lineTo(ox + (cgx + hy) * ppfx, oy + (cgy - hx) * ppfy);
+                ctx.closePath();
+                ctx.fillStyle = colors.fill;
+                ctx.fill();
+                ctx.strokeStyle = colors.linePrev;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                const sideFt = Math.sqrt(hx * hx + hy * hy) * Math.sqrt(2);
+                const mx = ox + mouseState.startMapX, my = oy + mouseState.startMapY;
+                ctx.fillStyle = 'rgba(0,0,0,0.7)';
+                ctx.fillRect(mx - 35, my - 12, 70, 24);
+                ctx.fillStyle = colors.label;
+                ctx.font = 'bold 13px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(`${Math.round(sideFt)}ft cube`, mx, my);
+            }
+
+            ctx.restore();
+        }
+
+        // ---- Image loading ----
+        mapFile.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            let w = parseInt(mapWidthInput.value);
+            let h = parseInt(mapHeightInput.value);
+            if (isNaN(w) || w <= 0) { alert('Please enter map width in feet before uploading.'); mapFile.value = ''; return; }
+            if (isNaN(h) || h <= 0) { alert('Please enter map height in feet before uploading.'); mapFile.value = ''; return; }
+            mapWidthFeet = w;
+            mapHeightFeet = h;
+
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const img = new Image();
+                img.onload = () => {
+                    image = img;
+                    imageAspectRatio = img.width / img.height;
+                    gameAspectRatio = mapWidthFeet / mapHeightFeet;
+                    placeholder.style.display = 'none';
+                    // Fit image
+                    const aspect = img.width / img.height;
+                    const cAspect = canvas.width / canvas.height;
+                    zoom = cAspect < aspect ? canvas.width / img.width : canvas.height / img.height;
+                    panX = 0; panY = 0;
+                    playerTokens = []; enemyTokens = []; Object.keys(overlayLayers).forEach(k => overlayLayers[k] = []);
+                    updateZoomDisplay(); updateMapInfoDisplay(); draw();
+                };
+                img.src = ev.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // ---- Zoom ----
+        function updateZoom(factor) {
+            zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom * factor));
+            updateZoomDisplay(); draw();
+        }
+        function resetView() {
+            zoom = 1; panX = 0; panY = 0;
+            updateZoomDisplay(); draw();
+        }
+        function updateZoomDisplay() { zoomLevelDisplay.textContent = Math.round(zoom * 100) + '%'; }
+        function updateMapInfoDisplay() {
+            const el = document.getElementById('mapInfo');
+            el.textContent = (mapWidthFeet > 0 && mapHeightFeet > 0)
+                ? `${mapWidthFeet}x${mapHeightFeet}ft` : '-';
+        }
+
+        document.getElementById('zoomInBtn').addEventListener('click', () => updateZoom(1 + ZOOM_SPEED));
+        document.getElementById('zoomOutBtn').addEventListener('click', () => updateZoom(1 - ZOOM_SPEED));
+        document.getElementById('resetBtn').addEventListener('click', resetView);
+
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            if (!confirm('Are you sure you want to clear the map? This will remove all enemy and overlays.')) {
+                return;
+            }
+            image = null; mapFile.value = '';
+            mapWidthInput.value = ''; mapHeightInput.value = '';
+            mapWidthFeet = 0; mapHeightFeet = 0;
+            imageAspectRatio = 1; gameAspectRatio = 1;
+            enemyTokens = []; Object.keys(overlayLayers).forEach(k => overlayLayers[k] = []); mouseState = null;
+            placeholder.style.display = 'flex';
+            zoom = 1; panX = 0; panY = 0;
+            updateZoomDisplay(); updateMapInfoDisplay(); draw();
+        });
+
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            if (!image) return;
+            updateZoom(e.deltaY > 0 ? (1 - ZOOM_SPEED) : (1 + ZOOM_SPEED));
+        }, { passive: false });
+
+        // ---- Tool selection ----
+        const toolButtons = {
+            move: document.getElementById('toolMove'),
+            measure: document.getElementById('toolMeasure'),
+            line: document.getElementById('toolLine'),
+            cube: document.getElementById('toolCube'),
+            circle: document.getElementById('toolCircle'),
+            cone: document.getElementById('toolCone')
+        };
+
+        function setTool(name) {
+            activeTool = name;
+            Object.values(toolButtons).forEach(b => b.classList.remove('active-tool'));
+            toolButtons[name].classList.add('active-tool');
+            canvas.style.cursor = name === 'move' ? 'pointer' : 'crosshair';
+            mouseState = null;
+        }
+
+        toolButtons.move.addEventListener('click', () => setTool('move'));
+        toolButtons.measure.addEventListener('click', () => setTool('measure'));
+        toolButtons.line.addEventListener('click', () => setTool('line'));
+        toolButtons.cube.addEventListener('click', () => setTool('cube'));
+        toolButtons.circle.addEventListener('click', () => setTool('circle'));
+        toolButtons.cone.addEventListener('click', () => setTool('cone'));
+        document.getElementById('toolClearOverlay').addEventListener('click', () => {
+            overlayLayers[activeLayer] = [];
+            draw();
+        });
+
+        // ---- Layer selection ----
+        document.querySelectorAll('.layer-tabs button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                activeLayer = btn.dataset.layer;
+                document.querySelectorAll('.layer-tabs button').forEach(b => b.classList.remove('active-layer'));
+                btn.classList.add('active-layer');
+            });
+        });
+
+        // ---- Mouse interaction ----
+        canvas.addEventListener('mousedown', (e) => {
+            if (!image) return;
+            
+            // Right mouse button always pans
+            if (e.button === 2) {
+                e.preventDefault();
+                mouseState = { action: 'pan', lastX: e.clientX, lastY: e.clientY };
+                container.classList.add('grabbing');
+                return;
+            }
+            
+            if (e.button !== 0) return;
+            const mp = clientToMap(e.clientX, e.clientY);
+
+            if (activeTool === 'move') {
+                const hit = findTokenAtMap(mp.x, mp.y);
+                if (hit) {
+                    mouseState = { action: 'move-token', hit };
+                    canvas.style.cursor = 'grabbing';
+                }
+            } else if (activeTool === 'measure') {
+                mouseState = { action: 'measure', startMapX: mp.x, startMapY: mp.y };
+            } else if (activeTool === 'line') {
+                mouseState = { action: 'line', startMapX: mp.x, startMapY: mp.y };
+            } else if (activeTool === 'cube') {
+                mouseState = { action: 'cube', startMapX: mp.x, startMapY: mp.y };
+            } else if (activeTool === 'circle') {
+                mouseState = { action: 'circle-place', startMapX: mp.x, startMapY: mp.y };
+            } else if (activeTool === 'cone') {
+                mouseState = { action: 'cone', startMapX: mp.x, startMapY: mp.y };
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (!image || !mouseState) return;
+            if (mouseState.action === 'pan') {
+                const dx = (e.clientX - mouseState.lastX) / zoom;
+                const dy = (e.clientY - mouseState.lastY) / zoom;
+                panX += dx; panY += dy;
+                mouseState.lastX = e.clientX; mouseState.lastY = e.clientY;
+                draw();
+            } else if (mouseState.action === 'measure') {
+                const mp = clientToMap(e.clientX, e.clientY);
+                mouseState.curX = mp.x; mouseState.curY = mp.y;
+                draw();
+            } else if (mouseState.action === 'line') {
+                const mp = clientToMap(e.clientX, e.clientY);
+                mouseState.curX = mp.x; mouseState.curY = mp.y;
+                draw();
+            } else if (mouseState.action === 'cube') {
+                const mp = clientToMap(e.clientX, e.clientY);
+                mouseState.curX = mp.x; mouseState.curY = mp.y;
+                draw();
+            } else if (mouseState.action === 'circle-place') {
+                const mp = clientToMap(e.clientX, e.clientY);
+                mouseState.curX = mp.x; mouseState.curY = mp.y;
+                draw();
+            } else if (mouseState.action === 'cone') {
+                const mp = clientToMap(e.clientX, e.clientY);
+                mouseState.curX = mp.x; mouseState.curY = mp.y;
+                draw();
+            } else if (mouseState.action === 'move-token') {
+                const mp = clientToMap(e.clientX, e.clientY);
+                const arr = mouseState.hit.type === 'player' ? playerTokens : enemyTokens;
+                arr[mouseState.hit.index].mapX = mp.x;
+                arr[mouseState.hit.index].mapY = mp.y;
+                draw();
+            }
+        });
+
+        document.addEventListener('mouseup', (e) => {
+            if (!mouseState) return;
+            if (mouseState.action === 'pan') {
+                container.classList.remove('grabbing');
+            } else if (mouseState.action === 'move-token') {
+                const mp = clientToMap(e.clientX, e.clientY);
+                if (mapPosValid(mp.x, mp.y)) {
+                    const arr = mouseState.hit.type === 'player' ? playerTokens : enemyTokens;
+                    arr[mouseState.hit.index].mapX = mp.x;
+                    arr[mouseState.hit.index].mapY = mp.y;
+                }
+                canvas.style.cursor = 'pointer';
+                draw();
+            } else if (mouseState.action === 'measure') {
+                const mp = clientToMap(e.clientX, e.clientY);
+                const dx = mp.x - mouseState.startMapX;
+                const dy = mp.y - mouseState.startMapY;
+                const dist = mapPixelsToFeet(dx, dy);
+                if (dist > 0.5) {
+                    overlayLayers[activeLayer].push({ type: 'line', x1: mouseState.startMapX, y1: mouseState.startMapY, x2: mp.x, y2: mp.y, dist });
+                }
+                draw();
+            } else if (mouseState.action === 'line') {
+                const mp = clientToMap(e.clientX, e.clientY);
+                const dx = mp.x - mouseState.startMapX;
+                const dy = mp.y - mouseState.startMapY;
+                const lengthFt = mapPixelsToFeet(dx, dy);
+                if (lengthFt > 0.5) {
+                    overlayLayers[activeLayer].push({ type: 'wall', x1: mouseState.startMapX, y1: mouseState.startMapY, x2: mp.x, y2: mp.y, lengthFt: Math.round(lengthFt), widthFt: 5 });
+                }
+                draw();
+            } else if (mouseState.action === 'cube') {
+                const mp = clientToMap(e.clientX, e.clientY);
+                const ppfx = pxPerFootX(), stretchY = getStretchFactorY(), ppfy = ppfx * stretchY;
+                const hx = (mp.x - mouseState.startMapX) / ppfx;
+                const hy = (mp.y - mouseState.startMapY) / ppfy;
+                const sideFt = Math.sqrt(hx * hx + hy * hy) * Math.sqrt(2);
+                if (sideFt > 0.5) {
+                    overlayLayers[activeLayer].push({ type: 'cube', cx: mouseState.startMapX, cy: mouseState.startMapY, tx: mp.x, ty: mp.y, sideFt: Math.round(sideFt) });
+                }
+                draw();
+            } else if (mouseState.action === 'circle-place') {
+                const mp = clientToMap(e.clientX, e.clientY);
+                const dx = mp.x - mouseState.startMapX;
+                const dy = mp.y - mouseState.startMapY;
+                const radiusFt = mapPixelsToFeet(dx, dy);
+                if (radiusFt > 0.5) {
+                    overlayLayers[activeLayer].push({ type: 'circle', cx: mouseState.startMapX, cy: mouseState.startMapY, radiusFt: Math.round(radiusFt) });
+                }
+                draw();
+            } else if (mouseState.action === 'cone') {
+                const mp = clientToMap(e.clientX, e.clientY);
+                const dx = mp.x - mouseState.startMapX;
+                const dy = mp.y - mouseState.startMapY;
+                const dist = mapPixelsToFeet(dx, dy);
+                if (dist > 0.5) {
+                    overlayLayers[activeLayer].push({ type: 'cone', ox: mouseState.startMapX, oy: mouseState.startMapY, tx: mp.x, ty: mp.y, lengthFt: dist });
+                }
+                draw();
+            }
+            mouseState = null;
+        });
+
+        // Right-click to remove token (always available)
+        canvas.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+        });
+
+        // ---- Drag-and-drop from cards to map ----
+        container.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+        container.addEventListener('drop', (e) => {
+            e.preventDefault();
+            if (!image) return;
+            const data = e.dataTransfer.getData('text/plain');
+            if (!data) return;
+            const parts = data.split('-');
+            const type = parts[0];
+            const id = parseInt(parts[1]);
+            const mp = clientToMap(e.clientX, e.clientY);
+            if (!mapPosValid(mp.x, mp.y)) return;
+
+            if (type === 'player') {
+                const c = players.find(ch => ch.id === id);
+                if (!c) return;
+                removeTokenByPlayerId(id);
+                playerTokens.push({ id, name: c.name.substring(0, 3).toUpperCase(), mapX: mp.x, mapY: mp.y });
+            } else if (type === 'enemy') {
+                const en = enemies.find(x => x.id === id);
+                if (!en) return;
+                removeTokenByEnemyId(id);
+                enemyTokens.push({ id, name: en.name.substring(0, 3).toUpperCase(), mapX: mp.x, mapY: mp.y });
+            }
+            draw();
+        });
+
+        // ---- Touch support (pan only) ----
+        let touchState = null;
+        canvas.addEventListener('touchstart', (e) => {
+            if (!image || e.touches.length !== 1) return;
+            touchState = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        });
+        canvas.addEventListener('touchmove', (e) => {
+            if (!touchState || e.touches.length !== 1) return;
+            e.preventDefault();
+            const dx = (e.touches[0].clientX - touchState.x) / zoom;
+            const dy = (e.touches[0].clientY - touchState.y) / zoom;
+            panX += dx; panY += dy;
+            touchState = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            draw();
+        }, { passive: false });
+        canvas.addEventListener('touchend', () => { touchState = null; });
+
+        // ---- Resize ----
+        window.addEventListener('resize', initCanvas);
+
+        // ---- Init ----
+        function startApp() {
+            initCanvas();
+            initPlayerSystem();
+            initEnemySystem();
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', startApp);
+        } else { startApp(); }
+
+        // ==================== PLAYER MANAGEMENT ====================
+        let players = [];
+        let editingPlayerId = null;
+
+        function initPlayerSystem() {
+            const addPlayerBtn = document.getElementById('addPlayerBtn');
+            const modal = document.getElementById('addPlayerModal');
+            const cancelBtn = document.getElementById('cancelBtn');
+            const playerForm = document.getElementById('playerForm');
+            const modalTitle = modal.querySelector('.modal-title');
+            const formSubmitBtn = document.getElementById('formSubmitBtn');
+
+            addPlayerBtn.addEventListener('click', () => {
+                editingPlayerId = null;
+                playerForm.reset();
+                modalTitle.textContent = 'Add Player';
+                formSubmitBtn.textContent = 'Add';
+                modal.classList.add('active');
+                document.getElementById('playerName').focus();
+            });
+            cancelBtn.addEventListener('click', () => { modal.classList.remove('active'); playerForm.reset(); editingPlayerId = null; });
+            modal.addEventListener('click', (e) => { if (e.target === modal) { modal.classList.remove('active'); playerForm.reset(); editingPlayerId = null; } });
+
+            playerForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const name = document.getElementById('playerName').value;
+                const speed = parseInt(document.getElementById('playerSpeed').value);
+                const concentrating = document.getElementById('playerConcentrating').checked;
+                const conditions = document.getElementById('playerConditions').value.split(',').map(c => c.trim()).filter(c => c);
+                const photoFile = document.getElementById('playerPhoto').files[0];
+                if (!name.trim()) { alert('Please enter a player name'); return; }
+                if (isNaN(speed) || speed < 0) { alert('Please enter a valid speed'); return; }
+
+                const finish = (photo) => {
+                    const statusState = 'up'; // New players default to up
+                    savePlayer(name, speed, concentrating, conditions, photo, statusState);
+                    playerForm.reset(); modal.classList.remove('active'); editingPlayerId = null;
+                };
+                if (photoFile) {
+                    const r = new FileReader();
+                    r.onload = (ev) => finish(ev.target.result);
+                    r.readAsDataURL(photoFile);
+                } else { finish(null); }
+            });
+        }
+
+        function savePlayer(name, speed, concentrating, conditions, photoData, statusState) {
+            if (editingPlayerId) {
+                const c = players.find(ch => ch.id === editingPlayerId);
+                if (c) { c.name = name; c.speed = speed; c.concentrating = concentrating; c.conditions = conditions; c.statusState = statusState; if (photoData !== null) c.photo = photoData; }
+                // Update token name if on map
+                const tk = playerTokens.find(t => t.id === editingPlayerId);
+                if (tk) tk.name = name.substring(0, 3).toUpperCase();
+            } else {
+                players.push({ id: Date.now(), name, speed, concentrating, conditions, statusState, photo: photoData });
+            }
+            renderPlayers(); draw();
+        }
+
+        function editPlayer(id) {
+            const c = players.find(ch => ch.id === id);
+            if (!c) return;
+            const modal = document.getElementById('addPlayerModal');
+            editingPlayerId = id;
+            document.getElementById('playerName').value = c.name;
+            document.getElementById('playerSpeed').value = c.speed;
+            document.getElementById('playerConcentrating').checked = c.concentrating;
+            document.getElementById('playerConditions').value = c.conditions ? c.conditions.join(', ') : '';
+            modal.querySelector('.modal-title').textContent = 'Edit Player';
+            document.getElementById('formSubmitBtn').textContent = 'Save';
+            modal.classList.add('active');
+        }
+
+        function removePlayer(id) {
+            players = players.filter(c => c.id !== id);
+            removeTokenByPlayerId(id);
+            renderPlayers();
+        }
+
+        function togglePlayerConcentrating(id) {
+            const c = players.find(ch => ch.id === id);
+            if (c) { c.concentrating = !c.concentrating; renderPlayers(); }
+        }
+
+        function cyclePlayerStatus(id) {
+            const c = players.find(ch => ch.id === id);
+            if (c) {
+                const states = ['up', 'down', 'dead'];
+                const currentIdx = states.indexOf(c.statusState || 'up');
+                c.statusState = states[(currentIdx + 1) % states.length];
+                renderPlayers(); draw();
+            }
+        }
+
+        function renderPlayers() {
+            const list = document.getElementById('playerList');
+            if (players.length === 0) { list.innerHTML = '<p style="color:#999;padding:20px;">No players yet</p>'; return; }
+            const getStatusLabel = (state) => {
+                if (state === 'down') return '⬇ DOWN';
+                if (state === 'dead') return '✖ DEAD';
+                return '↑ UP';
+            };
+            const getStatusClass = (state) => state === 'up' ? 'inactive' : '';
+            list.innerHTML = players.map(c => `
+                <div class="player-card">
+                    <button class="player-remove" onclick="removePlayer(${c.id})">×</button>
+                    ${c.photo ? `<div class="player-photo"><img src="${c.photo}" alt="${escapeHtml(c.name)}"></div>` : '<div class="player-photo">📸</div>'}
+                    <div class="player-name">${escapeHtml(c.name)}</div>
+                    <div class="player-info"><div class="player-speed">SPD: ${c.speed}</div></div>
+                    <div class="player-concentrating ${c.concentrating ? '' : 'inactive'}" onclick="togglePlayerConcentrating(${c.id})" title="Toggle concentrating">${c.concentrating ? '⊗ CONC' : '◯ conc'}</div>
+                    <div class="player-statusdown ${getStatusClass(c.statusState || 'up')}" onclick="cyclePlayerStatus(${c.id})" title="Cycle status">${getStatusLabel(c.statusState || 'up')}</div>
+                    ${c.conditions && c.conditions.length ? `<div class="player-conditions">${c.conditions.map(cond => `<span class="condition-tag">${escapeHtml(cond)}</span>`).join('')}</div>` : ''}
+                    <button class="player-edit-btn" onclick="editPlayer(${c.id})">Edit</button>
+                </div>`).join('');
+            // Make draggable
+            list.querySelectorAll('.player-card').forEach((card, i) => {
+                card.draggable = true;
+                card.style.cursor = 'grab';
+                card.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', 'player-' + players[i].id);
+                    e.dataTransfer.effectAllowed = 'copy';
+                });
+            });
+        }
+
+        function escapeHtml(text) { const d = document.createElement('div'); d.textContent = text; return d.innerHTML; }
+        function removeTokenByPlayerId(id) { playerTokens = playerTokens.filter(t => t.id !== id); draw(); }
+        function removeTokenByEnemyId(id) { enemyTokens = enemyTokens.filter(t => t.id !== id); draw(); }
+
+        renderPlayers();
+
+        // ==================== ENEMY MANAGEMENT ====================
+        let enemies = [];
+        let editingEnemyId = null;
+
+        function initEnemySystem() {
+            const addEnemyBtn = document.getElementById('addEnemyBtn');
+            const modal = document.getElementById('addEnemyModal');
+            const cancelBtn = document.getElementById('enemyCancelBtn');
+            const enemyForm = document.getElementById('enemyForm');
+            const modalTitle = modal.querySelector('.modal-title');
+            const formSubmitBtn = document.getElementById('enemyFormSubmitBtn');
+
+            addEnemyBtn.addEventListener('click', () => {
+                editingEnemyId = null;
+                enemyForm.reset();
+                modalTitle.textContent = 'Add Enemy';
+                formSubmitBtn.textContent = 'Add';
+                modal.classList.add('active');
+                document.getElementById('enemyName').focus();
+            });
+            cancelBtn.addEventListener('click', () => { modal.classList.remove('active'); enemyForm.reset(); editingEnemyId = null; });
+            modal.addEventListener('click', (e) => { if (e.target === modal) { modal.classList.remove('active'); enemyForm.reset(); editingEnemyId = null; } });
+
+            enemyForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const name = document.getElementById('enemyName').value;
+                const speed = parseInt(document.getElementById('enemySpeed').value);
+                const concentrating = document.getElementById('enemyConcentrating').checked;
+                const conditions = document.getElementById('enemyConditions').value.split(',').map(c => c.trim()).filter(c => c);
+                const photoFile = document.getElementById('enemyPhoto').files[0];
+                if (!name.trim()) { alert('Please enter an enemy name'); return; }
+                if (isNaN(speed) || speed < 0) { alert('Please enter a valid speed'); return; }
+
+                const finish = (photo) => {
+                    const statusState = 'up'; // New enemies default to up
+                    saveEnemy(name, speed, concentrating, conditions, photo, statusState);
+                    enemyForm.reset(); modal.classList.remove('active'); editingEnemyId = null;
+                };
+                if (photoFile) {
+                    const r = new FileReader();
+                    r.onload = (ev) => finish(ev.target.result);
+                    r.readAsDataURL(photoFile);
+                } else { finish(null); }
+            });
+        }
+
+        function saveEnemy(name, speed, concentrating, conditions, photoData, statusState) {
+            if (editingEnemyId) {
+                const en = enemies.find(x => x.id === editingEnemyId);
+                if (en) { en.name = name; en.speed = speed; en.concentrating = concentrating; en.conditions = conditions; en.statusState = statusState; if (photoData !== null) en.photo = photoData; }
+                const tk = enemyTokens.find(t => t.id === editingEnemyId);
+                if (tk) tk.name = name.substring(0, 3).toUpperCase();
+            } else {
+                enemies.push({ id: Date.now(), name, speed, concentrating, conditions, statusState, photo: photoData });
+            }
+            renderEnemies(); draw();
+        }
+
+        function editEnemy(id) {
+            const en = enemies.find(x => x.id === id);
+            if (!en) return;
+            const modal = document.getElementById('addEnemyModal');
+            editingEnemyId = id;
+            document.getElementById('enemyName').value = en.name;
+            document.getElementById('enemySpeed').value = en.speed;
+            document.getElementById('enemyConcentrating').checked = en.concentrating;
+            document.getElementById('enemyConditions').value = en.conditions ? en.conditions.join(', ') : '';
+            modal.querySelector('.modal-title').textContent = 'Edit Enemy';
+            document.getElementById('enemyFormSubmitBtn').textContent = 'Save';
+            modal.classList.add('active');
+        }
+
+        function removeEnemy(id) {
+            enemies = enemies.filter(x => x.id !== id);
+            removeTokenByEnemyId(id);
+            renderEnemies();
+        }
+
+        function toggleEnemyConcentrating(id) {
+            const en = enemies.find(x => x.id === id);
+            if (en) { en.concentrating = !en.concentrating; renderEnemies(); }
+        }
+
+        function cycleEnemyStatus(id) {
+            const en = enemies.find(x => x.id === id);
+            if (en) {
+                const states = ['up', 'down', 'dead'];
+                const currentIdx = states.indexOf(en.statusState || 'up');
+                en.statusState = states[(currentIdx + 1) % states.length];
+                renderEnemies(); draw();
+            }
+        }
+
+        function renderEnemies() {
+            const list = document.getElementById('enemyList');
+            if (enemies.length === 0) { list.innerHTML = '<p style="color:#999;padding:20px;">No enemies yet</p>'; return; }
+            const getStatusLabel = (state) => {
+                if (state === 'down') return '⬇ DOWN';
+                if (state === 'dead') return '✖ DEAD';
+                return '↑ UP';
+            };
+            const getStatusClass = (state) => state === 'up' ? 'inactive' : '';
+            list.innerHTML = enemies.map(en => `
+                <div class="enemy-card">
+                    <button class="enemy-remove" onclick="removeEnemy(${en.id})">×</button>
+                    ${en.photo ? `<div class="enemy-photo"><img src="${en.photo}" alt="${escapeHtml(en.name)}"></div>` : '<div class="enemy-photo">👹</div>'}
+                    <div class="enemy-name">${escapeHtml(en.name)}</div>
+                    <div class="enemy-info"><div class="enemy-speed">SPD: ${en.speed}</div></div>
+                    <div class="enemy-concentrating ${en.concentrating ? '' : 'inactive'}" onclick="toggleEnemyConcentrating(${en.id})" title="Toggle concentrating">${en.concentrating ? '⊗ CONC' : '◯ conc'}</div>
+                    <div class="enemy-statusdown ${getStatusClass(en.statusState || 'up')}" onclick="cycleEnemyStatus(${en.id})" title="Cycle status">${getStatusLabel(en.statusState || 'up')}</div>
+                    ${en.conditions && en.conditions.length ? `<div class="enemy-conditions">${en.conditions.map(cond => `<span class="condition-tag">${escapeHtml(cond)}</span>`).join('')}</div>` : ''}
+                    <button class="enemy-edit-btn" onclick="editEnemy(${en.id})">Edit</button>
+                </div>`).join('');
+            list.querySelectorAll('.enemy-card').forEach((card, i) => {
+                card.draggable = true;
+                card.style.cursor = 'grab';
+                card.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', 'enemy-' + enemies[i].id);
+                    e.dataTransfer.effectAllowed = 'copy';
+                });
+            });
+        }
+
+        renderEnemies();
+
+        // ==================== INITIATIVE TRACKER ====================
+        let initiativeOrder = []; // [{id, name, type:'player'|'enemy'}]
+        let currentTurnIndex = 0;
+
+        function refreshInitiativeList() {
+            // Collect all players and enemies, preserve existing order
+            const allEntries = [];
+            players.forEach(c => allEntries.push({ id: c.id, name: c.name, type: 'player' }));
+            enemies.forEach(en => allEntries.push({ id: en.id, name: en.name, type: 'enemy' }));
+
+            // Keep existing order for items that still exist, append new ones
+            const newOrder = [];
+            initiativeOrder.forEach(entry => {
+                const found = allEntries.find(a => a.id === entry.id && a.type === entry.type);
+                if (found) {
+                    found._used = true;
+                    newOrder.push({ id: found.id, name: found.name, type: found.type });
+                }
+            });
+            allEntries.forEach(a => {
+                if (!a._used) newOrder.push({ id: a.id, name: a.name, type: a.type });
+            });
+            initiativeOrder = newOrder;
+
+            // Clamp turn index
+            if (initiativeOrder.length === 0) currentTurnIndex = 0;
+            else currentTurnIndex = Math.min(currentTurnIndex, initiativeOrder.length - 1);
+
+            renderInitiative();
+        }
+
+        function renderInitiative() {
+            const list = document.getElementById('initiativeList');
+            if (initiativeOrder.length === 0) {
+                list.innerHTML = '<p style="color:#999;font-size:11px;text-align:center;">No entries</p>';
+                return;
+            }
+            list.innerHTML = initiativeOrder.map((entry, i) => {
+                const isActive = i === currentTurnIndex;
+                const typeClass = entry.type === 'player' ? 'player-init' : 'enemy-init';
+                return `<div class="init-item ${typeClass} ${isActive ? 'active-turn' : ''}" draggable="true" data-init-idx="${i}">
+                    <span class="init-pointer">${isActive ? '▶' : ''}</span>
+                    <span class="init-name">${escapeHtml(entry.name)}</span>
+                </div>`;
+            }).join('');
+
+            // Drag-and-drop reordering
+            const items = list.querySelectorAll('.init-item');
+            let dragIdx = null;
+
+            items.forEach(item => {
+                item.addEventListener('dragstart', (e) => {
+                    dragIdx = parseInt(item.dataset.initIdx);
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', 'init');
+                    item.style.opacity = '0.4';
+                });
+
+                item.addEventListener('dragend', () => {
+                    item.style.opacity = '1';
+                    items.forEach(el => el.classList.remove('drag-over'));
+                });
+
+                item.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    items.forEach(el => el.classList.remove('drag-over'));
+                    item.classList.add('drag-over');
+                });
+
+                item.addEventListener('dragleave', () => {
+                    item.classList.remove('drag-over');
+                });
+
+                item.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    if (e.dataTransfer.getData('text/plain') !== 'init') return;
+                    const dropIdx = parseInt(item.dataset.initIdx);
+                    if (dragIdx === null || dragIdx === dropIdx) return;
+
+                    // Move the dragged item to the drop position
+                    const moved = initiativeOrder.splice(dragIdx, 1)[0];
+                    initiativeOrder.splice(dropIdx, 0, moved);
+
+                    // Adjust currentTurnIndex to follow the active turn
+                    if (currentTurnIndex === dragIdx) {
+                        currentTurnIndex = dropIdx;
+                    } else if (dragIdx < currentTurnIndex && dropIdx >= currentTurnIndex) {
+                        currentTurnIndex--;
+                    } else if (dragIdx > currentTurnIndex && dropIdx <= currentTurnIndex) {
+                        currentTurnIndex++;
+                    }
+
+                    dragIdx = null;
+                    renderInitiative();
+                });
+            });
+        }
+
+        document.getElementById('initNextBtn').addEventListener('click', () => {
+            if (initiativeOrder.length === 0) return;
+            currentTurnIndex = (currentTurnIndex + 1) % initiativeOrder.length;
+            renderInitiative();
+        });
+
+        document.getElementById('initResetBtn').addEventListener('click', () => {
+            currentTurnIndex = 0;
+            renderInitiative();
+        });
+
+        // Hook into player/enemy renders to refresh initiative
+        const _origRenderPlayers = renderPlayers;
+        renderPlayers = function() {
+            _origRenderPlayers();
+            refreshInitiativeList();
+        };
+
+        const _origRenderEnemies = renderEnemies;
+        renderEnemies = function() {
+            _origRenderEnemies();
+            refreshInitiativeList();
+        };
+
+        refreshInitiativeList();
+    </script>
+</body>
+</html>
