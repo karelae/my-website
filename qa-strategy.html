@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Back-end QA Strategy – imec</title>
+  <style>
+    /* ── Reset & base ─────────────────────────────────── */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --orange:       #f97316;
+      --orange-dark:  #ea580c;
+      --orange-light: #fff7ed;
+      --orange-mid:   #fed7aa;
+      --primary:      #2563eb;
+      --text:         #1e293b;
+      --muted:        #64748b;
+      --light-bg:     #f8fafc;
+      --white:        #ffffff;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--text);
+      background: var(--white);
+      line-height: 1.6;
+    }
+
+    /* ── Scroll-in animation (skill requirement) ─────── */
+    .section-content {
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeInUp 0.6s ease forwards;
+    }
+
+    @keyframes fadeInUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* stagger children */
+    .section-content > * { animation-delay: 0.1s; }
+    .section-content > *:nth-child(2) { animation-delay: 0.2s; }
+    .section-content > *:nth-child(3) { animation-delay: 0.3s; }
+    .section-content > *:nth-child(4) { animation-delay: 0.4s; }
+
+    /* ── Shared section layout (skill requirement) ───── */
+    section {
+      padding: 4rem 2rem;
+    }
+
+    section .section-content {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    section:nth-of-type(odd)  { background: var(--white); }
+    section:nth-of-type(even) { background: var(--light-bg); }
+
+    /* ── Top navigation bar ──────────────────────────── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--white);
+      border-bottom: 2px solid var(--orange);
+      padding: 0.75rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    nav .brand {
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--orange-dark);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    nav a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.85rem;
+      transition: color 0.2s;
+    }
+    nav a:hover { color: var(--orange-dark); }
+
+    nav .spacer { flex: 1; }
+
+    /* ── Hero section ─────────────────────────────────── */
+    #hero {
+      background: linear-gradient(135deg, var(--orange-dark) 0%, var(--orange) 100%);
+      color: var(--white);
+      padding: 5rem 2rem 4rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #hero::before {
+      content: '';
+      position: absolute;
+      width: 460px;
+      height: 460px;
+      border-radius: 50%;
+      border: 70px solid rgba(255,255,255,0.15);
+      right: -100px;
+      top: -80px;
+    }
+
+    #hero::after {
+      content: '';
+      position: absolute;
+      width: 200px;
+      height: 70px;
+      background: rgba(255,255,255,0.15);
+      bottom: 60px;
+      left: 40px;
+      transform: rotate(-8deg);
+      border-radius: 4px;
+    }
+
+    #hero .section-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    #hero h1 {
+      font-size: clamp(2.2rem, 5vw, 3.5rem);
+      font-weight: 300;
+      letter-spacing: -0.01em;
+      margin-bottom: 0.5rem;
+    }
+
+    #hero .subtitle {
+      font-size: 1.15rem;
+      opacity: 0.9;
+      font-weight: 400;
+    }
+
+    #hero .meta {
+      margin-top: 2rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .badge {
+      background: rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.4);
+      color: var(--white);
+      padding: 0.3rem 0.9rem;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+    }
+
+    /* ── Section headings ─────────────────────────────── */
+    .section-title {
+      font-size: 1.7rem;
+      font-weight: 700;
+      color: var(--orange);
+      margin-bottom: 1.5rem;
+      border-left: 4px solid var(--orange);
+      padding-left: 0.75rem;
+    }
+
+    /* ── Divider section (section chapter title) ──────── */
+    .chapter-divider {
+      background: linear-gradient(135deg, var(--orange-dark) 0%, var(--orange) 100%);
+      color: var(--white);
+      padding: 3rem 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .chapter-divider::before {
+      content: '';
+      position: absolute;
+      width: 340px;
+      height: 340px;
+      border-radius: 50%;
+      border: 50px solid rgba(255,255,255,0.15);
+      right: -60px;
+      top: -60px;
+    }
+
+    .chapter-divider .section-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .chapter-divider h2 {
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 300;
+    }
+
+    /* ── Overview table ───────────────────────────────── */
+    .overview-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 2rem;
+      font-size: 0.95rem;
+    }
+
+    .overview-table thead th {
+      background: var(--orange);
+      color: var(--white);
+      padding: 0.75rem 1rem;
+      text-align: left;
+      font-weight: 700;
+    }
+
+    .overview-table tbody tr {
+      background: var(--orange-light);
+    }
+
+    .overview-table tbody tr:nth-child(even) {
+      background: var(--orange-mid);
+    }
+
+    .overview-table tbody td {
+      padding: 0.75rem 1rem;
+      vertical-align: top;
+      border-bottom: 1px solid rgba(249, 115, 22, 0.2);
+    }
+
+    .overview-table tbody td:first-child {
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .overview-table ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .overview-table ul li::before {
+      content: '• ';
+      color: var(--orange-dark);
+    }
+
+    /* ── Two-column grid ──────────────────────────────── */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+
+    @media (max-width: 600px) {
+      .two-col { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--white);
+      border: 1px solid var(--orange-mid);
+      border-top: 3px solid var(--orange);
+      border-radius: 6px;
+      padding: 1.25rem;
+    }
+
+    .card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--orange-dark);
+      margin-bottom: 0.75rem;
+    }
+
+    .card ul {
+      list-style: none;
+      padding: 0;
+      font-size: 0.9rem;
+    }
+
+    .card ul li {
+      padding: 0.25rem 0;
+      padding-left: 1.1rem;
+      position: relative;
+      color: var(--text);
+    }
+
+    .card ul li::before {
+      content: '•';
+      position: absolute;
+      left: 0;
+      color: var(--orange);
+    }
+
+    /* ── Bullet list with orange ring icons ───────────── */
+    .bullet-list {
+      list-style: none;
+      padding: 0;
+      margin: 1rem 0;
+    }
+
+    .bullet-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 0.5rem 0;
+      font-size: 1.05rem;
+      border-bottom: 1px solid var(--orange-light);
+    }
+
+    .bullet-list li:last-child { border-bottom: none; }
+
+    .bullet-list li .icon {
+      flex-shrink: 0;
+      width: 1.4rem;
+      height: 1.4rem;
+      border-radius: 50%;
+      border: 2.5px solid var(--orange);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 0.15rem;
+    }
+
+    .bullet-list li .icon::after {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--orange);
+    }
+
+    .wip-note {
+      margin-top: 2rem;
+      background: var(--orange-mid);
+      border-left: 4px solid var(--orange-dark);
+      padding: 0.75rem 1rem;
+      border-radius: 0 6px 6px 0;
+      font-size: 0.95rem;
+      color: var(--orange-dark);
+      font-weight: 600;
+    }
+
+    /* ── Pattern list (Key Testing Patterns) ─────────── */
+    .pattern-list {
+      list-style: none;
+      padding: 0;
+      margin: 0.5rem 0 1.5rem;
+    }
+
+    .pattern-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.6rem;
+      padding: 0.45rem 0;
+      font-size: 0.93rem;
+    }
+
+    .pattern-list li .emoji { font-size: 1rem; flex-shrink: 0; }
+
+    /* ── Footer ───────────────────────────────────────── */
+    footer {
+      background: var(--text);
+      color: #94a3b8;
+      text-align: center;
+      padding: 1.5rem 2rem;
+      font-size: 0.85rem;
+    }
+
+    footer a { color: var(--orange); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav>
+    <span class="brand">imec · QA Strategy</span>
+    <span class="spacer"></span>
+    <a href="#overview">API Testing</a>
+    <a href="#e2e">e2e Rationale</a>
+    <a href="#security">Security</a>
+  </nav>
+
+  <!-- ── Hero ──────────────────────────────────────────── -->
+  <section id="hero">
+    <div class="section-content">
+      <h1>Back-end</h1>
+      <p class="subtitle">QA Approach</p>
+      <div class="meta">
+        <span class="badge">pytest</span>
+        <span class="badge">FastAPI</span>
+        <span class="badge">Azure</span>
+        <span class="badge">LBAC</span>
+        <span class="badge">TEM Microscopy</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── API Testing Overview ───────────────────────────── -->
+  <section id="overview">
+    <div class="section-content">
+      <h2 class="section-title">API Testing Overview</h2>
+
+      <table class="overview-table">
+        <thead>
+          <tr>
+            <th>Test Type</th>
+            <th>Focus Areas</th>
+            <th>Key Examples</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Unit Tests</td>
+            <td>Component logic, file patterns, data processing</td>
+            <td>
+              <ul>
+                <li>Regex tests for TEM file naming</li>
+                <li>Configuration validation</li>
+                <li>Business logic functions</li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td>Integration Tests</td>
+            <td>API security, endpoints, Azure integration</td>
+            <td>
+              <ul>
+                <li>LBAC (Lot-Based Access Control)</li>
+                <li>Filter APIs with real auth</li>
+                <li>Blob storage workflows</li>
+              </ul>
+            </td>
+          </tr>
+          <tr>
+            <td>Deployment Tests</td>
+            <td>Infrastructure validation</td>
+            <td>
+              <ul>
+                <li>Service health checks</li>
+              </ul>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="two-col">
+        <div class="card">
+          <h3>Key Testing Patterns</h3>
+          <ul class="pattern-list">
+            <li><span class="emoji">🔒</span> <span><strong>Security-First:</strong> Extensive LBAC ensuring users only see authorized lots</span></li>
+            <li><span class="emoji">🎯</span> <span><strong>Real-World Complexity:</strong> Complex TEM microscopy file naming patterns</span></li>
+            <li><span class="emoji">☁️</span> <span><strong>Azure-Native:</strong> Blob Storage, Cosmos DB, Service Bus integration</span></li>
+            <li><span class="emoji">🧪</span> <span><strong>Mock-Heavy:</strong> Proper external dependency isolation</span></li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>Technology Stack</h3>
+          <ul>
+            <li>pytest, FastAPI TestClient, polars DataFrames</li>
+            <li>Azure: Identity, Blob Storage, Cosmos DB, Service Bus</li>
+            <li>Sophisticated mocking for external dependencies</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Why e2e API Testing ────────────────────────────── -->
+  <section id="e2e">
+    <div class="section-content">
+      <h2 class="section-title">Why e2e API Testing is Needed</h2>
+
+      <ul class="bullet-list">
+        <li>
+          <span class="icon"></span>
+          <span>Technical correctness</span>
+        </li>
+        <li>
+          <span class="icon"></span>
+          <span>API contracts</span>
+        </li>
+        <li>
+          <span class="icon"></span>
+          <span>Business workflows</span>
+        </li>
+        <li>
+          <span class="icon"></span>
+          <span>Real production data</span>
+        </li>
+        <li>
+          <span class="icon"></span>
+          <span>Deployed Application Testing</span>
+        </li>
+        <li>
+          <span class="icon"></span>
+          <span>Regression Detection for User Impact</span>
+        </li>
+        <li>
+          <span class="icon"></span>
+          <span>Can be 100% automated. No visual checks required.</span>
+        </li>
+      </ul>
+
+      <div class="wip-note">⚠️ Work in progress (WIP)</div>
+    </div>
+  </section>
+
+  <!-- ── Security chapter divider ──────────────────────── -->
+  <section id="security" class="chapter-divider">
+    <div class="section-content">
+      <h2>Security</h2>
+    </div>
+  </section>
+
+  <!-- ── Security content ───────────────────────────────── -->
+  <section id="security-content">
+    <div class="section-content">
+      <h2 class="section-title">Security Testing</h2>
+
+      <div class="two-col">
+        <div class="card">
+          <h3>LBAC (Lot-Based Access Control)</h3>
+          <ul>
+            <li>Verify users only access authorized lots</li>
+            <li>Test cross-lot data isolation</li>
+            <li>Validate role-based endpoint restrictions</li>
+            <li>Test unauthorized access returns 403</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>Authentication & Authorization</h3>
+          <ul>
+            <li>Azure Identity integration tests</li>
+            <li>Token validation and expiry handling</li>
+            <li>Filter APIs with real auth flows</li>
+            <li>Service-to-service auth verification</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>Data Protection</h3>
+          <ul>
+            <li>Sensitive data not exposed in responses</li>
+            <li>Cosmos DB document-level access control</li>
+            <li>Blob Storage SAS token scoping</li>
+            <li>PII handling compliance checks</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>Infrastructure Security</h3>
+          <ul>
+            <li>Service Bus connection security</li>
+            <li>Azure Key Vault secret rotation</li>
+            <li>Network access policy validation</li>
+            <li>Health check endpoint exposure audit</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Back-end QA Strategy Template &mdash; imec &middot;
+      <a href="index.html">← Back to main site</a>
+    </p>
+  </footer>
+
+</body>
+</html>
